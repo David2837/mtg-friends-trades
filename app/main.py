@@ -29,6 +29,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "mtg_friends.db"
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 engine = create_engine(DATABASE_URL, echo=False)
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+
 
 app = FastAPI()
 app.add_middleware(SessionMiddleware, secret_key="CHANGE_THIS_SECRET_KEY")
@@ -523,7 +525,6 @@ def forgot_password_submit(
 
         # Build a reset link – adjust base URL to your hosted URL later
         # For local dev:
-        base_url = "http://localhost:8000"
         reset_link = f"{base_url}/reset-password?token={raw_token}"
 
         # Send email (or log if SMTP is not configured)
