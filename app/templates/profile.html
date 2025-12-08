@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Profile · MTG Friend Trades{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto pt-4 pb-8">
+  <h1 class="text-2xl font-semibold mb-4">Profile</h1>
+
+  <section class="bg-slate-800 rounded-lg p-4 mb-4">
+    <h2 class="text-sm font-semibold mb-2">Account details</h2>
+
+    {% if name_error %}
+      <div class="mb-2 text-xs rounded bg-rose-900/70 border border-rose-600/70 px-3 py-2">
+        <span class="text-rose-50">{{ name_error }}</span>
+      </div>
+    {% endif %}
+
+    <form method="post" action="/profile/update-name" class="space-y-3 text-sm">
+      <div>
+        <label class="block text-xs mb-1">Email</label>
+        <input type="email"
+               value="{{ current_user.email }}"
+               class="w-full rounded bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-400"
+               readonly>
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1">Display name</label>
+        <input type="text"
+               name="name"
+               value="{{ current_user.name }}"
+               class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+               required>
+      </div>
+
+      <button type="submit"
+              class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
+        Save changes
+      </button>
+    </form>
+  </section>
+
+  <section class="bg-slate-800 rounded-lg p-4">
+    <h2 class="text-sm font-semibold mb-2">Change password</h2>
+
+    {% if pwd_error %}
+      <div class="mb-2 text-xs rounded bg-rose-900/70 border border-rose-600/70 px-3 py-2">
+        <span class="text-rose-50">{{ pwd_error }}</span>
+      </div>
+    {% endif %}
+
+    {% if pwd_success %}
+      <div class="mb-2 text-xs rounded bg-emerald-900/70 border border-emerald-600/70 px-3 py-2">
+        <span class="text-emerald-50">{{ pwd_success }}</span>
+      </div>
+    {% endif %}
+
+    <form method="post" action="/profile/change-password" class="space-y-3 text-sm">
+      <div>
+        <label class="block text-xs mb-1">Current password</label>
+        <input type="password"
+               name="current_password"
+               class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+               required>
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1">New password</label>
+        <input type="password"
+               name="new_password"
+               class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+               required>
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1">Confirm new password</label>
+        <input type="password"
+               name="new_password_confirm"
+               class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+               required>
+      </div>
+
+      <button type="submit"
+              class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
+        Update password
+      </button>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,452 @@
+{% extends "base.html" %}
+{% block title %}Collection · MTG Friends Trades{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">My collection</h1>
+
+{% set removed_name = request.query_params.get('removed_name') %}
+{% set removed_qty = request.query_params.get('removed_qty') %}
+
+{% if removed_name and removed_qty %}
+  <div class="mb-3 text-xs rounded bg-rose-900/70 border border-rose-600/70 px-3 py-2">
+    <span class="text-rose-50">
+      Removed <strong>{{ removed_qty }}</strong> cop{% if removed_qty|int == 1 %}y{% else %}ies{% endif %}
+      of <strong>{{ removed_name }}</strong> from your collection.
+      {% if request.query_params.get('removed_all') %}
+        All copies of this card were removed.
+      {% endif %}
+    </span>
+  </div>
+{% endif %}
+
+
+
+{% set c_added = request.query_params.get('csv_import_added') %}
+{% set c_updated = request.query_params.get('csv_import_updated') %}
+{% set c_skipped = request.query_params.get('csv_import_skipped') %}
+
+{% if c_added or c_updated or c_skipped %}
+  <div class="mb-3 text-xs rounded bg-slate-900/80 border border-slate-600/60 px-3 py-2">
+    <div class="text-slate-100 mb-1 font-semibold">
+      Collection import summary
+    </div>
+    <ul class="list-disc list-inside text-slate-200">
+      {% if c_added and c_added|int > 0 %}
+        <li>{{ c_added }} new card row{% if c_added|int != 1 %}s{% endif %} added to your collection.</li>
+      {% endif %}
+      {% if c_updated and c_updated|int > 0 %}
+        <li>{{ c_updated }} existing card row{% if c_updated|int != 1 %}s{% endif %} had their quantity increased.</li>
+      {% endif %}
+      {% if c_skipped and c_skipped|int > 0 %}
+        <li>{{ c_skipped }} CSV row{% if c_skipped|int != 1 %}s{% endif %} skipped (empty or invalid name).</li>
+      {% endif %}
+    </ul>
+  </div>
+{% endif %}
+
+
+{% if request.query_params.get('added_new') %}
+  <div class="mb-3 text-xs rounded bg-emerald-900/70 border border-emerald-600/60 px-3 py-2">
+    Added <strong>{{ request.query_params.get('added_new') }}</strong> to your collection.
+  </div>
+{% endif %}
+
+{% if request.query_params.get('added_existing') %}
+  <div class="mb-3 text-xs rounded bg-slate-900/80 border border-slate-600/60 px-3 py-2">
+    Increased quantity of <strong>{{ request.query_params.get('added_existing') }}</strong> in your collection.
+  </div>
+{% endif %}
+
+
+{# Import collection from CSV #}
+<details class="mb-4 bg-slate-800 rounded-lg">
+  <summary class="px-4 py-3 text-sm cursor-pointer flex items-center justify-between">
+    <span>Import collection from CSV</span>
+    <span class="text-xs text-slate-400">Tap to open</span>
+  </summary>
+
+  <div class="px-4 pb-4 pt-1 border-t border-slate-700">
+    <p class="text-[11px] text-slate-300 mb-2">
+      Upload a CSV export (e.g. from Delver) to add cards to your collection.
+    </p>
+    <form method="post"
+          action="/dashboard/import-csv"
+          enctype="multipart/form-data"
+          class="flex flex-col sm:flex-row gap-2 items-start sm:items-end"
+          onsubmit="showImportLoading('collection-import-button','collection-import-status','Importing...')">
+      <input type="file"
+             name="csv_file"
+             accept=".csv"
+             class="text-xs text-slate-200">
+      <button type="submit"
+              id="collection-import-button"
+              class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-xs font-semibold">
+        Import CSV to collection
+      </button>
+    </form>
+    <p id="collection-import-status"
+       class="hidden mt-1 text-[11px] text-slate-300">
+      Importing cards from CSV... this may take a while if the file has many entries.
+    </p>
+  </div>
+</details>
+
+
+<details class="mb-4 bg-slate-800 rounded-lg">
+  <summary class="px-4 py-3 text-sm cursor-pointer flex items-center justify-between">
+    <span>Add a single card to my collection</span>
+    <span class="text-xs text-slate-400">Tap to open</span>
+  </summary>
+
+  <div class="px-4 pb-4 pt-1 border-t border-slate-700">
+    <p class="text-[11px] text-slate-300 mb-2">
+      Type a card name (and optional set). If you already have this card in your collection,
+      its quantity will be increased instead of creating a duplicate row.
+    </p>
+    <form method="post" action="/collection/add-card"
+          class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+      <div class="md:col-span-2">
+        <label class="block text-xs mb-1">Card name</label>
+        <div class="relative">
+          <input id="collection-add-card-name"
+                 name="card_name"
+                 data-card-autocomplete="true"
+                 class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+                 placeholder="e.g. Sol Ring, Cyclonic Rift"
+                 required>
+          <div class="absolute z-30 mt-1 w-full bg-slate-900 border border-slate-700 rounded-md shadow-lg hidden text-xs max-h-56 overflow-y-auto"
+               data-card-suggestions-for="collection-add-card-name"></div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1">Set (optional)</label>
+        <input name="set_name"
+               class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+               placeholder="e.g. CMR">
+      </div>
+
+      <div>
+        <label class="block text-xs mb-1">Quantity</label>
+        <input type="number"
+               name="quantity"
+               min="1"
+               value="1"
+               class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+      </div>
+
+      <div class="md:col-span-4">
+        <button type="submit"
+                class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
+          Add to collection
+        </button>
+      </div>
+    </form>
+  </div>
+</details>
+
+
+{# Filters & sorting - collapsible on mobile #}
+<details class="mb-4 bg-slate-800 rounded-lg">
+  <summary class="px-3 py-2 text-sm cursor-pointer flex items-center justify-between">
+    <span>Filters & sorting</span>
+    <span class="text-xs text-slate-400">Tap to open</span>
+  </summary>
+
+  <div class="px-3 pb-3 pt-2 border-t border-slate-700">
+    <form method="get" action="/collection"
+          class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+      <!-- name search -->
+      <div>
+        <label class="block text-sm mb-1">Search by card name</label>
+        <div class="relative">
+          <input id="collection-q"
+                 name="q"
+                 value="{{ q or '' }}"
+                 data-card-autocomplete="true"
+                 class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+                 placeholder="e.g. Lightning Bolt, Sol Ring">
+          <div class="absolute z-30 mt-1 w-full bg-slate-900 border border-slate-700 rounded-md shadow-lg hidden text-xs max-h-56 overflow-y-auto"
+               data-card-suggestions-for="collection-q"></div>
+        </div>
+      </div>
+
+      <!-- listed filter -->
+      <div>
+        <label class="block text-sm mb-1">Listed status</label>
+        <select name="listed"
+                class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+          <option value="all" {% if listed == 'all' %}selected{% endif %}>All</option>
+          <option value="listed" {% if listed == 'listed' %}selected{% endif %}>Only listed</option>
+          <option value="not_listed" {% if listed == 'not_listed' %}selected{% endif %}>Only not listed</option>
+        </select>
+      </div>
+
+      <!-- color filter -->
+      <div>
+        <label class="block text-sm mb-1">Color</label>
+        <select name="color"
+                class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+          <option value="any" {% if color == 'any' %}selected{% endif %}>Any</option>
+          <option value="W" {% if color == 'W' %}selected{% endif %}>White (W)</option>
+          <option value="U" {% if color == 'U' %}selected{% endif %}>Blue (U)</option>
+          <option value="B" {% if color == 'B' %}selected{% endif %}>Black (B)</option>
+          <option value="R" {% if color == 'R' %}selected{% endif %}>Red (R)</option>
+          <option value="G" {% if color == 'G' %}selected{% endif %}>Green (G)</option>
+          <option value="C" {% if color == 'C' %}selected{% endif %}>Colorless (C)</option>
+        </select>
+      </div>
+
+      <!-- type filter + sort -->
+      <div class="flex flex-col gap-2">
+        <div>
+          <label class="block text-sm mb-1">Card type</label>
+          <select name="card_type"
+                  class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+            <option value="any" {% if card_type == 'any' %}selected{% endif %}>Any</option>
+            <option value="Creature" {% if card_type == 'Creature' %}selected{% endif %}>Creature</option>
+            <option value="Instant" {% if card_type == 'Instant' %}selected{% endif %}>Instant</option>
+            <option value="Sorcery" {% if card_type == 'Sorcery' %}selected{% endif %}>Sorcery</option>
+            <option value="Artifact" {% if card_type == 'Artifact' %}selected{% endif %}>Artifact</option>
+            <option value="Enchantment" {% if card_type == 'Enchantment' %}selected{% endif %}>Enchantment</option>
+            <option value="Land" {% if card_type == 'Land' %}selected{% endif %}>Land</option>
+            <option value="Planeswalker" {% if card_type == 'Planeswalker' %}selected{% endif %}>Planeswalker</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Sort by</label>
+          <select name="sort"
+                  class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+            <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name A → Z</option>
+            <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Name Z → A</option>
+            <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price high → low</option>
+            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price low → high</option>
+            <option value="set_asc" {% if sort == 'set_asc' %}selected{% endif %}>Set, then name</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit"
+              class="md:col-span-4 px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
+        Apply filters
+      </button>
+    </form>
+  </div>
+</details>
+
+{% if total %}
+  <div class="text-xs text-slate-400 mb-2">
+    Showing {{ cards|length }} of {{ total }} card{% if total != 1 %}s{% endif %} in your collection.
+    Page {{ page }} of {{ max_page }}.
+  </div>
+{% endif %}
+
+{% if cards %}
+  {# Bulk actions #}
+  <form method="post" action="/dashboard/bulk-list" id="collection-bulk-form"
+        class="mb-2 flex flex-wrap gap-2 items-center text-xs">
+    <span class="text-slate-300 mr-1">Bulk actions:</span>
+    <button type="submit" name="action" value="list_selected"
+            class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold">
+      List selected for trade
+    </button>
+    <button type="submit" name="action" value="unlist_selected"
+            class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold">
+      Unlist selected
+    </button>
+    <button type="submit" name="action" value="list_all"
+            class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-slate-50 font-semibold">
+      List all in my collection
+    </button>
+    <button type="submit" name="action" value="unlist_all"
+            class="px-3 py-1.5 rounded bg-red-700 hover:bg-red-600 text-slate-50 font-semibold">
+      Unlist all in my collection
+    </button>
+  </form>
+
+  <div class="max-h-[480px] overflow-y-auto border border-slate-700 rounded-md">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-xs">
+        <thead class="bg-slate-900 sticky top-0">
+          <tr>
+            <th class="px-2 py-2 w-8 text-left"></th>
+            <th class="px-2 py-2 text-left">Card</th>
+            <th class="px-2 py-2 text-left hidden sm:table-cell">Set</th>
+            <th class="px-2 py-2 text-left">Qty</th>
+            <th class="px-2 py-2 text-left hidden sm:table-cell">Listed?</th>
+            <th class="px-2 py-2 text-right">Value</th>
+            <th class="px-2 py-1 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for item in view_cards %}
+          {% set c = item.card %}
+          {% set mana = item.mana %}
+          <!-- main row -->
+          <tr class="border-t border-slate-700 bg-slate-900/60 hover:bg-slate-900 align-top">
+            <td class="px-2 py-1">
+              <input type="checkbox" name="card_ids" value="{{ c.id }}"
+                    form="collection-bulk-form"
+                    class="accent-emerald-500">
+            </td>
+            <td class="px-2 py-1">
+              <div class="flex flex-col gap-0.5">
+                {% if c.scryfall_image_url %}
+                  <div class="font-semibold text-slate-100 text-[11px] cursor-pointer"
+                      onclick="openCardModal('{{ c.scryfall_image_url }}', '{{ c.card_name|e }}')">
+                    {{ c.card_name }}
+                  </div>
+                  {% if c.card_name in wishlist_names %}
+                    <div class="text-[10px] text-amber-300 mt-0.5">
+                      This card is on your wishlist.
+                    </div>
+                  {% endif %}
+                {% else %}
+                  <div class="font-semibold text-slate-100 text-[11px]">
+                    {{ c.card_name }}
+                  </div>
+                {% endif %}
+                {% if mana %}
+                  <div class="flex flex-wrap gap-1">
+                    {# your mana symbol rendering stays the same #}
+                    {% for sym in mana %}
+                      {% set sym_upper = sym.upper() %}
+                      {% if sym_upper == 'W' %}
+                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-yellow-200 text-yellow-900 border border-yellow-400">
+                          W
+                        </span>
+                      {% elif sym_upper == 'U' %}
+                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-blue-500 text-blue-50 border border-blue-300">
+                          U
+                        </span>
+                      {% elif sym_upper == 'B' %}
+                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-black text-slate-100 border border-slate-600">
+                          B
+                        </span>
+                      {% elif sym_upper == 'R' %}
+                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-red-50 border border-red-300">
+                          R
+                        </span>
+                      {% elif sym_upper == 'G' %}
+                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-green-50 border border-green-300">
+                          G
+                        </span>
+                      {% elif sym_upper.isdigit() %}
+                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-slate-600 text-slate-100 border border-slate-400">
+                          {{ sym_upper }}
+                        </span>
+                      {% else %}
+                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-slate-700 text-slate-100 border border-slate-500">
+                          {{ sym }}
+                        </span>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% if c.type_line %}
+                  <div class="text-[10px] text-slate-400">
+                    {{ c.type_line }}
+                  </div>
+                {% endif %}
+                <div class="sm:hidden mt-1">
+                  {% if c.is_for_trade %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-600/30 text-emerald-300 text-[10px]">
+                      listed
+                    </span>
+                  {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-[10px]">
+                      not listed
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="px-2 py-1 hidden sm:table-cell">
+              {% if c.set_name %}
+                <span class="text-[11px] text-slate-300">{{ c.set_name }}</span>
+              {% else %}
+                <span class="text-[11px] text-slate-500">—</span>
+              {% endif %}
+            </td>
+            <td class="px-2 py-1">
+              <span class="text-[11px] text-slate-200">{{ c.quantity }}</span>
+            </td>
+            <td class="px-2 py-1 hidden sm:table-cell">
+              {% if c.is_for_trade %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-600/30 text-emerald-300 text-[10px]">
+                  listed
+                </span>
+              {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 text-[10px]">
+                  not listed
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-2 py-1 text-right">
+              {% if c.price_usd %}
+                <span class="text-[11px] text-emerald-300">
+                  ~${{ "%.2f"|format(c.price_usd) }}
+                  {% if c.quantity > 1 %}
+                    · ~${{ "%.2f"|format(c.price_usd * c.quantity) }}
+                  {% endif %}
+                </span>
+              {% else %}
+                <span class="text-[11px] text-slate-500">n/a</span>
+              {% endif %}
+            </td>
+            <td class="px-2 py-1 align-top text-right">
+              <form method="post"
+                    action="/collection/delete-card"
+                    class="flex items-center justify-end gap-1"
+                    onsubmit="return confirm('Remove these copies of {{ c.card_name|e }} from your collection?');">
+                <input type="hidden" name="card_id" value="{{ c.id }}">
+                <input type="number"
+                      name="quantity"
+                      min="1"
+                      max="{{ c.quantity }}"
+                      value="1"
+                      class="w-12 rounded bg-slate-900 border border-slate-600 px-1 py-0.5 text-[10px] text-right">
+                <button type="submit"
+                        class="px-2 py-1 rounded bg-rose-600 hover:bg-rose-500 text-slate-50 text-[10px]">
+                  Remove
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if max_page > 1 %}
+    <div class="flex justify-between items-center mt-3 text-xs text-slate-300">
+      <div>
+        {% if page > 1 %}
+          <a href="/collection?q={{ q|urlencode }}&listed={{ listed }}&color={{ color }}&card_type={{ card_type }}&sort={{ sort }}&page={{ page - 1 }}"
+             class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700">
+            ‹ Previous
+          </a>
+        {% endif %}
+      </div>
+      <div>
+        Page {{ page }} of {{ max_page }}
+      </div>
+      <div>
+        {% if page < max_page %}
+          <a href="/collection?q={{ q|urlencode }}&listed={{ listed }}&color={{ color }}&card_type={{ card_type }}&sort={{ sort }}&page={{ page + 1 }}"
+             class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700">
+            Next ›
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% else %}
+  <p class="text-sm text-slate-400">
+    No cards in your collection match this filter.
+  </p>
+{% endif %}
+{% endblock %}

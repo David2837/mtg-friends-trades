@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Wishlist · MTG Friends Trades{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">My wishlist</h1>
+{% if not has_collection and not has_wishlist %}
+<div class="mb-4 rounded bg-emerald-900/30 border border-emerald-700/40 px-4 py-3 text-sm">
+  👋 Welcome!
+  <ol class="list-decimal list-inside mt-2 text-slate-200">
+    <li>Import your collection</li>
+    <li>Create a group & invite friends</li>
+    <li>Add cards you’re looking for</li>
+  </ol>
+</div>
+{% endif %}
+
+
+{% set w_added = request.query_params.get('wish_import_added') %}
+{% set w_owned = request.query_params.get('wish_import_already_owned') %}
+{% set w_existing = request.query_params.get('wish_import_existing') %}
+{% set w_dupes = request.query_params.get('wish_import_duplicates') %}
+
+{% if w_added or w_owned or w_existing or w_dupes %}
+  <div class="mb-3 text-xs rounded bg-slate-900/80 border border-slate-600/60 px-3 py-2">
+    <div class="text-slate-100 mb-1 font-semibold">
+      Wishlist import summary
+    </div>
+    <ul class="list-disc list-inside text-slate-200">
+      {% if w_added and w_added|int > 0 %}
+        <li>{{ w_added }} new card{% if w_added|int != 1 %}s{% endif %} added to your wishlist.</li>
+      {% endif %}
+      {% if w_owned and w_owned|int > 0 %}
+        <li>{{ w_owned }} card{% if w_owned|int != 1 %}s{% endif %} from this deck are already in your collection.</li>
+      {% endif %}
+      {% if w_existing and w_existing|int > 0 %}
+        <li>{{ w_existing }} card{% if w_existing|int != 1 %}s{% endif %} were already in your wishlist before this import. Cards were not added to wishlist.</li>
+      {% endif %}
+      {% if w_dupes and w_dupes|int > 0 %}
+        <li>{{ w_dupes }} extra deck slot{% if w_dupes|int != 1 %}s{% endif %} were duplicates of cards already counted above (e.g. multiple copies).</li>
+      {% endif %}
+    </ul>
+  </div>
+{% endif %}
+
+
+
+{# messages from single-card add #}
+{% if request.query_params.get('already_have') %}
+  <div class="mb-3 text-xs rounded bg-amber-900/60 border border-amber-600/60 px-3 py-2">
+    You already have <strong>{{ request.query_params.get('already_have') }}</strong> in your collection,
+    so it was not added to your wishlist.
+  </div>
+{% endif %}
+{% if request.query_params.get('wish_added') %}
+  <div class="mb-3 text-xs rounded bg-emerald-900/60 border border-emerald-600/60 px-3 py-2">
+    Added <strong>{{ request.query_params.get('wish_added') }}</strong> to your wishlist.
+  </div>
+{% endif %}
+
+{# messages from import #}
+{% if import_added is defined and import_added %}
+  <div class="mb-3 text-xs rounded bg-emerald-900/60 border border-emerald-600/60 px-3 py-2">
+    <div class="font-semibold mb-1">Added to wishlist from last import:</div>
+    <ul class="list-disc list-inside space-y-0.5">
+      {% for name in import_added %}
+        <li>{{ name }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+{% if import_owned is defined and import_owned %}
+  <div class="mb-3 text-xs rounded bg-slate-900/80 border border-slate-600/60 px-3 py-2">
+    <div class="font-semibold mb-1">Already in your collection:</div>
+    <p class="mb-1 text-[11px] text-slate-300">
+      These cards from the import were detected in your collection, so they were not added to your wishlist:
+    </p>
+    <ul class="list-disc list-inside space-y-0.5">
+      {% for name in import_owned %}
+        <li>{{ name }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<div class="grid md:grid-cols-2 gap-4 mb-4">
+  {# Single-card add #}
+  <form method="post" action="/dashboard/add-wish" class="space-y-2">
+    <div class="text-sm font-semibold">Add a single card</div>
+    <div>
+      <label class="block text-xs mb-1">Card name</label>
+      <div class="relative">
+        <input id="wishlist-card-name"
+              name="card_name"
+              data-card-autocomplete="true"
+              class="w-full rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-sm"
+              required>
+        <div class="absolute z-30 mt-1 w-full bg-slate-900 border border-slate-700 rounded-md shadow-lg hidden text-xs max-h-56 overflow-y-auto"
+            data-card-suggestions-for="wishlist-card-name">
+        </div>
+      </div>
+    </div>
+    <div>
+      <label class="block text-xs mb-1">Set (optional)</label>
+      <input name="set_name"
+            class="w-full rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-sm"
+            placeholder="e.g. CMR">
+    </div>
+    <button class="mt-1 px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">
+      Add to wishlist
+    </button>
+  </form>
+
+
+
+  {# Decklist import #}
+  <form method="post"
+      action="/dashboard/import-wishlist"
+      class="space-y-2"
+      onsubmit="showImportLoading('wishlist-import-button','wishlist-import-status','Importing...')">
+    <div class="text-sm font-semibold">Import from EDHREC / Moxfield</div>
+    <p class="text-[11px] text-slate-300">
+      Paste a decklist export here (e.g. from EDHREC or Moxfield).
+      Each line should have a quantity and card name, like <code>1 Sol Ring</code> or <code>1x Sol Ring</code>.
+      Cards you already own will be detected and not added to your wishlist.
+    </p>
+    <textarea name="deck_text"
+              class="w-full min-h-[120px] rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-xs"
+              placeholder="1 Sol Ring&#10;1 Swords to Plowshares&#10;..."></textarea>
+    <button id="wishlist-import-button"
+            class="mt-1 px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">
+      Import to wishlist
+    </button>
+    <p id="wishlist-import-status"
+      class="hidden mt-1 text-[11px] text-slate-300">
+      <span id="wishlist-import-status-text">
+        Importing cards from decklist... this may take a few seconds if there are many cards. Please do not leave this page until import if finished.
+      </span>
+    </p>
+  </form>
+</div>
+
+<form method="get" action="/dashboard"
+      class="mb-3 flex flex-col md:flex-row gap-2 items-start md:items-end text-xs">
+  <div class="flex-1">
+    <label class="block text-xs mb-1">Filter by card name</label>
+    <input name="q"
+           value="{{ q or '' }}"
+           class="w-full rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-sm"
+           placeholder="e.g. Sol Ring, Cyclonic Rift">
+  </div>
+  <div class="flex gap-2 mt-1 md:mt-0">
+    <button type="submit"
+            class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold">
+      Apply
+    </button>
+    {% if q %}
+      <a href="/dashboard"
+         class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold">
+        Clear
+      </a>
+    {% endif %}
+  </div>
+</form>
+
+
+<div class="flex justify-between items-center mb-2 text-xs">
+  <div class="text-slate-400">
+    {% if wishes %}
+      You have {{ wishes|length }} card{% if wishes|length != 1 %}s{% endif %} in your wishlist.
+    {% else %}
+      Your wishlist is empty.
+    {% endif %}
+  </div>
+
+  {% if wishes %}
+    <form method="post" action="/dashboard/wishlist/clear">
+      <button type="submit"
+              class="px-3 py-1.5 rounded bg-red-700 hover:bg-red-600 text-slate-50 font-semibold">
+        Delete all from wishlist
+      </button>
+    </form>
+  {% endif %}
+</div>
+
+{% if wishes %}
+  <div class="max-h-[360px] overflow-y-auto border border-slate-700 rounded-md">
+    <table class="w-full text-xs">
+      <thead class="bg-slate-900 sticky top-0">
+        <tr>
+          <th class="px-2 py-2 text-left">Card</th>
+          <th class="px-2 py-2 text-left">Set</th>
+          <th class="px-2 py-2 text-left">Qty</th>
+          <th class="px-2 py-2 text-right">Value</th>
+          <th class="px-2 py-2 text-right"></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for w in wishes %}
+        <tr class="border-t border-slate-700 {% if w.card_name in owned_names %}bg-emerald-900/30{% else %}bg-slate-900/60 hover:bg-slate-900{% endif %}">
+          <td class="px-2 py-1 align-top">
+          {% if w.scryfall_image_url %}
+            <div class="font-semibold text-slate-100 text-[11px] cursor-pointer"
+                onclick="openCardModal('{{ w.scryfall_image_url }}', '{{ w.card_name|e }}')">
+              {{ w.card_name }}
+            </div>
+          {% else %}
+            <div class="font-semibold text-slate-100 text-[11px]">
+              {{ w.card_name }}
+            </div>
+          {% endif %}
+          {% if w.card_name in owned_names %}
+            <div class="text-[10px] text-emerald-300 mt-0.5">
+              You already have this card in your collection.
+            </div>
+          {% endif %}
+        </td>
+          <td class="px-2 py-1 align-top">
+            {% if w.set_name %}
+              <span class="text-[11px] text-slate-300">{{ w.set_name }}</span>
+            {% else %}
+              <span class="text-[11px] text-slate-500">—</span>
+            {% endif %}
+          </td>
+          <td class="px-2 py-1 align-top">
+            <span class="text-[11px] text-slate-200">{{ w.quantity|default(1) }}</span>
+          </td>
+          <td class="px-2 py-1 align-top text-right">
+            {% if w.price_usd %}
+              <span class="text-[11px] text-emerald-300">
+                ~${{ "%.2f"|format(w.price_usd) }}
+                {% if (w.quantity or 1) > 1 %}
+                  · ~${{ "%.2f"|format(w.price_usd * (w.quantity or 1)) }}
+                {% endif %}
+              </span>
+            {% else %}
+              <span class="text-[11px] text-slate-500">n/a</span>
+            {% endif %}
+          </td>
+          <td class="px-2 py-1 align-top text-right">
+            <form method="post" action="/dashboard/wishlist/delete">
+              <input type="hidden" name="wish_id" value="{{ w.id }}">
+              <button type="submit"
+                      class="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-100 text-[11px]">
+                Delete
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}

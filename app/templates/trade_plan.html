@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Trade plan · MTG Friends Trades{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">Trade plan</h1>
+<p class="text-sm text-slate-400 mb-4">
+  Overview of cards you plan to trade with your friends.
+  <strong>Mark as done</strong> updates both players’ collections and wishlists.
+</p>
+
+{% if request.query_params.get('completed') %}
+  <div class="mb-3 text-xs rounded bg-emerald-900/70 border border-emerald-600/70 px-3 py-2">
+    <span class="text-emerald-50 font-semibold">
+      Trade marked as done. Collections and wishlist have been updated.
+    </span>
+  </div>
+{% endif %}
+
+
+{% if friends %}
+  <div class="space-y-5">
+    {% for block in friends %}
+      {% set friend = block.friend %}
+      <section class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <h2 class="text-lg font-semibold mb-1">{{ friend.name }}</h2>
+        <p class="text-xs text-slate-400 mb-3">
+            Total I should receive: 
+            <span class="text-emerald-300">~${{ "%.2f"|format(block.total_receive) }}</span>
+            · Total I should give: 
+            <span class="text-amber-300">~${{ "%.2f"|format(block.total_give) }}</span>
+        </p>
+
+        <div class="grid md:grid-cols-2 gap-4">
+
+          <!-- Cards I should receive -->
+          <div>
+            <h3 class="text-sm font-semibold mb-2 text-emerald-300">Cards I should receive</h3>
+            {% if block.receive %}
+              <div class="space-y-2">
+                {% for item in block.receive %}
+                  {% set claim = item.claim %}
+                  {% set c = item.card %}
+                  <div class="border border-slate-700 rounded-md p-2 bg-slate-900/60 text-sm">
+                    <div class="flex gap-3 items-start">
+                      <div class="w-14">
+                        {% if c.scryfall_image_url %}
+                          <img src="{{ c.scryfall_image_url }}" alt="{{ c.card_name }}"
+                               class="w-14 h-20 object-cover rounded border border-slate-700 cursor-pointer"
+                               onclick="toggleDetails('trade-claim-{{ claim.id }}')">
+                        {% else %}
+                          <div class="w-14 h-20 flex items-center justify-center rounded bg-slate-900 text-[10px] text-slate-500">
+                            no image
+                          </div>
+                        {% endif %}
+                      </div>
+                      <div class="flex-1">
+                        <div class="font-semibold cursor-pointer"
+                             onclick="toggleDetails('trade-claim-{{ claim.id }}')">
+                          {{ c.card_name }}
+                        </div>
+                        <div class="text-xs text-slate-400">
+                          {% if c.set_name %}Set: {{ c.set_name }} · {% endif %}
+                          Qty: {{ claim.quantity }}{% if c.foil %} · Foil{% endif %}{% if c.condition %} · {{ c.condition }}{% endif %}
+                        </div>
+                        {% if c.price_usd %}
+                          <div class="text-[11px] text-emerald-300 mt-0.5">
+                            ~${{ "%.2f"|format(c.price_usd) }} each
+                            {% if claim.quantity > 1 %}
+                              · total ~${{ "%.2f"|format(c.price_usd * claim.quantity) }}
+                            {% endif %}
+                          </div>
+                        {% endif %}
+                        <div class="mt-2 flex gap-2 text-[11px]">
+                          <form method="post" action="/claims/{{ claim.id }}/complete">
+                            <button class="px-2 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold">
+                              Mark as done
+                            </button>
+                          </form>
+                          <form method="post" action="/claims/{{ claim.id }}/cancel">
+                            <button class="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-100">
+                              Cancel
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                    {% if c.scryfall_image_url %}
+                      <div id="trade-claim-{{ claim.id }}" class="hidden mt-3 border-t border-slate-700 pt-3">
+                        <img src="{{ c.scryfall_image_url }}" alt="{{ c.card_name }}"
+                             class="w-40 md:w-56 h-auto rounded-lg shadow-xl border border-slate-700 mb-2 mx-auto">
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-xs text-slate-500">No incoming cards from this friend yet.</p>
+            {% endif %}
+          </div>
+
+          <!-- Cards I should give -->
+          <div>
+            <h3 class="text-sm font-semibold mb-2 text-amber-300">Cards I should give</h3>
+            {% if block.give %}
+              <div class="space-y-2">
+                {% for item in block.give %}
+                  {% set claim = item.claim %}
+                  {% set c = item.card %}
+                  <div class="border border-slate-700 rounded-md p-2 bg-slate-900/60 text-sm">
+                    <div class="flex gap-3 items-start">
+                      <div class="w-14">
+                        {% if c.scryfall_image_url %}
+                          <img src="{{ c.scryfall_image_url }}" alt="{{ c.card_name }}"
+                               class="w-14 h-20 object-cover rounded border border-slate-700 cursor-pointer"
+                               onclick="toggleDetails('trade-claim-{{ claim.id }}')">
+                        {% else %}
+                          <div class="w-14 h-20 flex items-center justify-center rounded bg-slate-900 text-[10px] text-slate-500">
+                            no image
+                          </div>
+                        {% endif %}
+                      </div>
+                      <div class="flex-1">
+                        <div class="font-semibold cursor-pointer"
+                             onclick="toggleDetails('trade-claim-{{ claim.id }}')">
+                          {{ c.card_name }}
+                        </div>
+                        <div class="text-xs text-slate-400">
+                          {% if c.set_name %}Set: {{ c.set_name }} · {% endif %}
+                          Qty: {{ claim.quantity }}{% if c.foil %} · Foil{% endif %}{% if c.condition %} · {{ c.condition }}{% endif %}
+                        </div>
+                        {% if c.price_usd %}
+                          <div class="text-[11px] text-emerald-300 mt-0.5">
+                            ~${{ "%.2f"|format(c.price_usd) }} each
+                            {% if claim.quantity > 1 %}
+                              · total ~${{ "%.2f"|format(c.price_usd * claim.quantity) }}
+                            {% endif %}
+                          </div>
+                        {% endif %}
+                        <div class="mt-2 flex gap-2 text-[11px]">
+                          <form method="post" action="/claims/{{ claim.id }}/complete">
+                            <button class="px-2 py-1 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold">
+                              Mark as done
+                            </button>
+                          </form>
+                          <form method="post" action="/claims/{{ claim.id }}/cancel">
+                            <button class="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-100">
+                              Cancel
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                    {% if c.scryfall_image_url %}
+                      <div id="trade-claim-{{ claim.id }}" class="hidden mt-3 border-t border-slate-700 pt-3">
+                        <img src="{{ c.scryfall_image_url }}" alt="{{ c.card_name }}"
+                             class="w-40 md:w-56 h-auto rounded-lg shadow-xl border border-slate-700 mb-2 mx-auto">
+                      </div>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-xs text-slate-500">No outgoing cards to this friend yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-sm text-slate-400">
+    You don’t have any cards in your trade plan yet. Use “Add to trade plan” on Browse or Matches to start.
+  </p>
+{% endif %}
+{% endblock %}

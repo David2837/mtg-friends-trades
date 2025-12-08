@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Register · MTG Friends Trades{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto bg-slate-800 rounded-lg shadow p-6">
+  <h1 class="text-xl font-semibold mb-4">Create account</h1>
+  {% if error %}
+    <div class="mb-4 text-sm text-red-300 bg-red-900/40 px-3 py-2 rounded">{{ error }}</div>
+  {% endif %}
+  <form method="post" class="space-y-4">
+    <div>
+      <label class="block text-sm mb-1">Email</label>
+      <input name="email" type="email" required class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-sm mb-1">Display name</label>
+      <input name="name" type="text" required class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-sm mb-1">Contact link (Discord / WhatsApp / email)</label>
+      <input name="contact_link" type="text"
+             class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+             placeholder="e.g. https://wa.me/..., your Discord tag">
+    </div>
+    <div>
+      <label class="block text-sm mb-1">Password</label>
+      <input name="password" type="password" required class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+    </div>
+    <button type="submit"
+            class="w-full mt-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold py-2 rounded">
+      Sign up
+    </button>
+    <p class="text-xs text-slate-400 mt-3">
+      Already have an account?
+      <a href="/login" class="text-emerald-400 hover:text-emerald-300">Log in</a>.
+    </p>
+  </form>
+</div>
+{% endblock %}

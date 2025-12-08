@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Groups · MTG Friends Trades{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">My groups</h1>
+
+<section class="bg-slate-800 rounded-lg p-4 mb-4">
+  <h2 class="text-sm font-semibold mb-2">Create a new group</h2>
+
+  <form method="post"
+        action="/groups/create"
+        class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+    <div class="sm:col-span-3">
+      <label class="block text-sm mb-1">Group name</label>
+      <input name="name"
+             class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+             placeholder="e.g. Friday Commander Pod"
+             required>
+    </div>
+
+    <div class="sm:col-span-1">
+      <label class="block text-sm mb-1 invisible sm:visible sm:h-5">Create</label>
+      <button type="submit"
+              class="w-full px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
+        Create
+      </button>
+    </div>
+  </form>
+</section>
+
+<section class="bg-slate-800 rounded-lg p-4">
+  <h2 class="text-lg font-semibold mb-3">Groups I belong to</h2>
+
+  {% if groups %}
+    <div class="space-y-4">
+      {% for g in groups %}
+        <div class="border border-slate-700 rounded-md p-3 bg-slate-900/60">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
+            <div>
+              <div class="font-semibold">{{ g.name }}</div>
+              {% if g.owner_id == current_user.id %}
+                <div class="text-xs text-emerald-300">You are the owner</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Members -->
+          <div class="mb-3">
+            <div class="text-xs text-slate-400 mb-1">Members:</div>
+            <div class="flex flex-wrap gap-2">
+              {% for u in members_by_group.get(g.id, []) %}
+                <div class="flex items-center gap-1 text-xs px-2 py-1 rounded bg-slate-700 text-slate-100">
+                  <span>
+                    {{ u.name }} <span class="text-slate-400">({{ u.email }})</span>
+                    {% if u.id == g.owner_id %}<span class="text-amber-300"> · owner</span>{% endif %}
+                  </span>
+                  {% if g.owner_id == current_user.id and u.id != g.owner_id %}
+                    <form method="post" action="/groups/{{ g.id }}/remove-member/{{ u.id }}">
+                      <button class="ml-1 text-red-300 hover:text-red-200" title="Remove from group">✕</button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          {% if g.owner_id == current_user.id %}
+            <!-- Add member by email -->
+            <form method="post" action="/groups/{{ g.id }}/add-member"
+                  class="mt-2 flex flex-col md:flex-row gap-2 md:items-end">
+              <div class="flex-1">
+                <label class="block text-xs mb-1">Add member by email (must already have an account)</label>
+                <input name="email" type="email"
+                       class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-1.5 text-xs"
+                       placeholder="friend@example.com">
+              </div>
+              <button type="submit"
+                      class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-xs font-semibold">
+                Add member
+              </button>
+            </form>
+
+            <!-- Invite links -->
+            <div class="mt-4">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-slate-400">Invite links (share with friends so they can join):</span>
+                <form method="post" action="/groups/{{ g.id }}/create-invite">
+                  <button class="text-xs px-2 py-1 rounded bg-slate-700 hover:bg-slate-600">
+                    Create new invite
+                  </button>
+                </form>
+              </div>
+              {% set group_invites = invites_by_group.get(g.id, []) %}
+              {% if group_invites %}
+                <div class="space-y-1">
+                  {% for inv in group_invites %}
+                    <div class="text-[11px] bg-slate-900 border border-slate-700 rounded px-2 py-1 break-all">
+                      <!-- The frontend URL; replace 127.0.0.1:8000 with your real domain when deployed -->
+                      {{ request.url.scheme }}://{{ request.url.netloc }}/groups/join/{{ inv.token }}
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-[11px] text-slate-500">
+                  No invites yet. Create one above and share the link.
+                </p>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-sm text-slate-400">
+      You are not in any groups yet. Create one above and invite your friends by email or invite link.
+    </p>
+  {% endif %}
+</section>
+{% endblock %}

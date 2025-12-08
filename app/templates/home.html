@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}MTG Friend Trades · Trade with your playgroup{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto pt-6 pb-10">
+  <h1 class="text-3xl font-bold mb-3">
+    Trade Magic cards with your friends,
+    <span class="text-emerald-400">without the marketplace drama.</span>
+  </h1>
+
+  <p class="text-sm text-slate-300 mb-4">
+    MTG Friend Trades is a tiny tool for playgroups and local friends who
+    want to swap cards fairly. No shipping. No strangers. Just you and
+    the people you actually play with.
+  </p>
+
+  <div class="grid gap-4 md:grid-cols-2 mb-6">
+    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4 text-sm">
+      <h2 class="font-semibold mb-2 text-emerald-300">Share your collection</h2>
+      <p class="text-slate-300 text-xs mb-2">
+        Import your cards from CSV (e.g. Delver) or add them one by one.
+        Mark which cards you’re happy to trade.
+      </p>
+      <ul class="list-disc list-inside text-slate-300 text-xs">
+        <li>Card images & oracle text from Scryfall</li>
+        <li>Approximate $ value per card & per trade</li>
+      </ul>
+    </div>
+
+    <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-4 text-sm">
+      <h2 class="font-semibold mb-2 text-emerald-300">Find easy trades</h2>
+      <p class="text-slate-300 text-xs mb-2">
+        Build a wishlist from decklists (Moxfield / EDHREC). We’ll highlight
+        which cards your friends are offering and help you plan trades.
+      </p>
+      <ul class="list-disc list-inside text-slate-300 text-xs">
+        <li>Matches based on any printing of a card</li>
+        <li>Trade plan per friend with total $ on each side</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="bg-slate-800/70 border border-slate-700 rounded-lg p-4 text-sm mb-6">
+    <h2 class="font-semibold mb-2 text-emerald-300">Private groups only</h2>
+    <p class="text-slate-300 text-xs mb-2">
+      Create a group for your playgroup or store night and invite friends
+      by email. You only ever see cards from people in your groups.
+    </p>
+  </div>
+
+  <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+    <a href="/signup"
+       class="inline-flex justify-center items-center px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
+      Create an account
+    </a>
+    <a href="/login"
+       class="inline-flex justify-center items-center px-4 py-2 rounded border border-slate-600 text-slate-100 text-sm hover:bg-slate-800">
+      Log in
+    </a>
+    <p class="text-[11px] text-slate-400 sm:ml-2">
+      Free, no ads, built just for trading with friends.
+    </p>
+  </div>
+</div>
+{% endblock %}
