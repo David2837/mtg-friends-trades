@@ -1460,6 +1460,24 @@ def delete_collection_card(
     qs = urllib.parse.urlencode(params)
     return RedirectResponse(url="/collection?" + qs, status_code=302)
 
+@app.post("/collection/clear")
+def clear_collection(
+    request: Request,
+    current_user: User = Depends(login_required),
+    session: Session = Depends(get_session),
+):
+    # delete ALL cards in this user's collection
+    session.exec(
+        delete(CardListing).where(CardListing.owner_id == current_user.id)
+    )
+    session.commit()
+
+    # show a banner on /collection afterwards
+    return RedirectResponse(
+        url="/collection?collection_cleared=1",
+        status_code=302,
+    )
+
 
 
 # Browse & matches
