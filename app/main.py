@@ -373,12 +373,12 @@ def home(
 
 # Auth
 
-@app.get("/register")
-def register_get(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
+@app.get("/signup")
+def signup_get(request: Request):
+    return templates.TemplateResponse("signup.html", {"request": request})
 
-@app.post("/register")
-def register_post(request: Request,
+@app.post("/signup")
+def signup_post(request: Request,
                   email: str = Form(...),
                   name: str = Form(...),
                   contact_link: str = Form(""),
@@ -386,7 +386,7 @@ def register_post(request: Request,
                   session: Session = Depends(get_session)):
     existing = session.exec(select(User).where(User.email == email)).first()
     if existing:
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Email already registered."})
+        return templates.TemplateResponse("signup.html", {"request": request, "error": "Email already signuped."})
     user = User(email=email, name=name, contact_link=contact_link or "", password_hash=pbkdf2_sha256.hash(password))
     session.add(user)
     session.commit()
