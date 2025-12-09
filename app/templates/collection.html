@@ -2,7 +2,46 @@
 {% block title %}Collection · MTG Friends Trades{% endblock %}
 
 {% block content %}
+{% set has_filters = (q or listed != 'all' or color != 'any' or card_type != 'any' or sort != 'name_asc') %}
 <h1 class="text-2xl font-semibold mb-4">My collection</h1>
+
+{% if has_filters %}
+  <div class="mb-3 flex flex-wrap gap-2 text-[11px]">
+    <span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-200">
+      Active filters:
+    </span>
+    {% if q %}
+      <span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-100">
+        Name: “{{ q }}”
+      </span>
+    {% endif %}
+    {% if listed != 'all' %}
+      <span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-100">
+        {% if listed == 'listed' %}Listed only{% else %}Not listed{% endif %}
+      </span>
+    {% endif %}
+    {% if color != 'any' %}
+      <span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-100">
+        Color: {{ color }}
+      </span>
+    {% endif %}
+    {% if card_type != 'any' %}
+      <span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-100">
+        Type: {{ card_type }}
+      </span>
+    {% endif %}
+    {% if sort != 'name_asc' %}
+      <span class="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-100">
+        {% if sort == 'name_desc' %}Name Z → A
+        {% elif sort == 'price_desc' %}Price high → low
+        {% elif sort == 'price_asc' %}Price low → high
+        {% elif sort == 'set_asc' %}Set, then name
+        {% endif %}
+      </span>
+    {% endif %}
+  </div>
+{% endif %}
+
 
 {% set removed_name = request.query_params.get('removed_name') %}
 {% set removed_qty = request.query_params.get('removed_qty') %}
@@ -58,107 +97,128 @@
 {% endif %}
 
 
-{# Import collection from CSV #}
-<details class="mb-4 bg-slate-800 rounded-lg">
-  <summary class="px-4 py-3 text-sm cursor-pointer flex items-center justify-between">
-    <span>Import collection from CSV</span>
-    <span class="text-xs text-slate-400">Tap to open</span>
-  </summary>
+{# Compact “manage collection” tools #}
+<section class="bg-slate-800 rounded-lg p-3 mb-4">
+  <h2 class="text-sm font-semibold mb-2 flex items-center gap-2">
+    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/50 text-xs">⚙️</span>
+    Manage my collection
+  </h2>
 
-  <div class="px-4 pb-4 pt-1 border-t border-slate-700">
-    <p class="text-[11px] text-slate-300 mb-2">
-      Upload a CSV export (e.g. from Delver) to add cards to your collection.
-    </p>
-    <form method="post"
-          action="/dashboard/import-csv"
-          enctype="multipart/form-data"
-          class="flex flex-col sm:flex-row gap-2 items-start sm:items-end"
-          onsubmit="showImportLoading('collection-import-button','collection-import-status','Importing...')">
-      <input type="file"
-             name="csv_file"
-             accept=".csv"
-             class="text-xs text-slate-200">
-      <button type="submit"
-              id="collection-import-button"
-              class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-xs font-semibold">
-        Import CSV to collection
-      </button>
-    </form>
-    <p id="collection-import-status"
-       class="hidden mt-1 text-[11px] text-slate-300">
-      Importing cards from CSV... this may take a while if the file has many entries.
-    </p>
-  </div>
-</details>
-
-
-<details class="mb-4 bg-slate-800 rounded-lg">
-  <summary class="px-4 py-3 text-sm cursor-pointer flex items-center justify-between">
-    <span>Add a single card to my collection</span>
-    <span class="text-xs text-slate-400">Tap to open</span>
-  </summary>
-
-  <div class="px-4 pb-4 pt-1 border-t border-slate-700">
-    <p class="text-[11px] text-slate-300 mb-2">
-      Type a card name (and optional set). If you already have this card in your collection,
-      its quantity will be increased instead of creating a duplicate row.
-    </p>
-    <form method="post" action="/collection/add-card"
-          class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-      <div class="md:col-span-2">
-        <label class="block text-xs mb-1">Card name</label>
-        <div class="relative">
-          <input id="collection-add-card-name"
-                 name="card_name"
-                 data-card-autocomplete="true"
-                 class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
-                 placeholder="e.g. Sol Ring, Cyclonic Rift"
-                 required>
-          <div class="absolute z-30 mt-1 w-full bg-slate-900 border border-slate-700 rounded-md shadow-lg hidden text-xs max-h-56 overflow-y-auto"
-               data-card-suggestions-for="collection-add-card-name"></div>
+  <div class="grid gap-2 sm:grid-cols-2">
+    {# Tile: Import CSV #}
+    <div class="bg-slate-900/70 rounded-md border border-slate-700 p-3">
+      <button type="button"
+              class="w-full flex items-center justify-between text-left"
+              onclick="toggleDetails('collection-import-body')">
+        <div>
+          <div class="text-xs font-semibold text-slate-100">Import from CSV</div>
+          <div class="text-[11px] text-slate-400">
+            Upload Delver / other exports.
+          </div>
         </div>
+        <span class="text-slate-400 text-xs">Tap to open</span>
+      </button>
+      <div id="collection-import-body" class="mt-2 hidden">
+        <form method="post"
+              action="/dashboard/import-csv"
+              enctype="multipart/form-data"
+              class="mt-2 flex flex-col sm:flex-row gap-2 items-start sm:items-end"
+              onsubmit="showImportLoading('collection-import-button','collection-import-status','Importing...')">
+          <input type="file"
+                 name="csv_file"
+                 accept=".csv"
+                 class="text-xs text-slate-200">
+          <button type="submit"
+                  id="collection-import-button"
+                  class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-xs font-semibold">
+            Import CSV to collection
+          </button>
+        </form>
+        <p id="collection-import-status"
+           class="hidden mt-1 text-[11px] text-slate-300">
+          Importing cards from CSV... this may take a while if the file has many entries.
+        </p>
       </div>
+    </div>
 
-      <div>
-        <label class="block text-xs mb-1">Set (optional)</label>
-        <input name="set_name"
-               class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
-               placeholder="e.g. CMR">
-      </div>
+    {# Tile: Add single card #}
+    <div class="bg-slate-900/70 rounded-md border border-slate-700 p-3">
+      <button type="button"
+              class="w-full flex items-center justify-between text-left"
+              onclick="toggleDetails('collection-add-single-body')">
+        <div>
+          <div class="text-xs font-semibold text-slate-100">Add a single card</div>
+          <div class="text-[11px] text-slate-400">
+            Quickly add one card by name.
+          </div>
+        </div>
+        <span class="text-slate-400 text-xs">Tap to open</span>
+      </button>
+      <div id="collection-add-single-body" class="mt-2 hidden">
+        <p class="text-[11px] text-slate-300 mb-2 mt-2">
+          If you already have this card in your collection,
+          its quantity will be increased instead of creating a duplicate row.
+        </p>
+        <form method="post" action="/collection/add-card"
+              class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+          <div class="md:col-span-2">
+            <label class="block text-xs mb-1">Card name</label>
+            <div class="relative">
+              <input id="collection-add-card-name"
+                     name="card_name"
+                     data-card-autocomplete="true"
+                     class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+                     placeholder="e.g. Sol Ring, Cyclonic Rift"
+                     required>
+              <div class="absolute z-30 mt-1 w-full bg-slate-900 border border-slate-700 rounded-md shadow-lg hidden text-xs max-h-56 overflow-y-auto"
+                   data-card-suggestions-for="collection-add-card-name"></div>
+            </div>
+          </div>
 
-      <div>
-        <label class="block text-xs mb-1">Quantity</label>
-        <input type="number"
-               name="quantity"
-               min="1"
-               value="1"
-               class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
-      </div>
+          <div>
+            <label class="block text-xs mb-1">Set (optional)</label>
+            <input name="set_name"
+                   class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm"
+                   placeholder="e.g. CMR">
+          </div>
 
-      <div class="md:col-span-4">
-        <button type="submit"
-                class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
-          Add to collection
-        </button>
+          <div>
+            <label class="block text-xs mb-1">Quantity</label>
+            <input type="number"
+                   name="quantity"
+                   min="1"
+                   value="1"
+                   class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
+          </div>
+
+          <div class="md:col-span-4">
+            <button type="submit"
+                    class="px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
+              Add to collection
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   </div>
-</details>
+</section>
 
 
-{# Filters & sorting - collapsible on mobile #}
 <details class="mb-4 bg-slate-800 rounded-lg">
   <summary class="px-3 py-2 text-sm cursor-pointer flex items-center justify-between">
-    <span>Filters & sorting</span>
+    <span class="flex items-center gap-2">
+      <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 border border-slate-600 text-[11px]">⚙️</span>
+      Filters & sorting
+    </span>
     <span class="text-xs text-slate-400">Tap to open</span>
   </summary>
 
-  <div class="px-3 pb-3 pt-2 border-t border-slate-700">
-    <form method="get" action="/collection"
-          class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-      <!-- name search -->
+  <form method="get" action="/collection">
+    <div class="px-4 pb-4 pt-3 border-t border-slate-700 text-sm space-y-4">
+
+      {# Search bar #}
       <div>
-        <label class="block text-sm mb-1">Search by card name</label>
+        <label class="block text-xs mb-1 text-slate-300">Search by card name</label>
         <div class="relative">
           <input id="collection-q"
                  name="q"
@@ -171,68 +231,161 @@
         </div>
       </div>
 
-      <!-- listed filter -->
-      <div>
-        <label class="block text-sm mb-1">Listed status</label>
-        <select name="listed"
-                class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
-          <option value="all" {% if listed == 'all' %}selected{% endif %}>All</option>
-          <option value="listed" {% if listed == 'listed' %}selected{% endif %}>Only listed</option>
-          <option value="not_listed" {% if listed == 'not_listed' %}selected{% endif %}>Only not listed</option>
-        </select>
-      </div>
+      {# Filters – two-column layout on desktop #}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <!-- color filter -->
-      <div>
-        <label class="block text-sm mb-1">Color</label>
-        <select name="color"
-                class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
-          <option value="any" {% if color == 'any' %}selected{% endif %}>Any</option>
-          <option value="W" {% if color == 'W' %}selected{% endif %}>White (W)</option>
-          <option value="U" {% if color == 'U' %}selected{% endif %}>Blue (U)</option>
-          <option value="B" {% if color == 'B' %}selected{% endif %}>Black (B)</option>
-          <option value="R" {% if color == 'R' %}selected{% endif %}>Red (R)</option>
-          <option value="G" {% if color == 'G' %}selected{% endif %}>Green (G)</option>
-          <option value="C" {% if color == 'C' %}selected{% endif %}>Colorless (C)</option>
-        </select>
-      </div>
-
-      <!-- type filter + sort -->
-      <div class="flex flex-col gap-2">
+        {# Listed status #}
         <div>
-          <label class="block text-sm mb-1">Card type</label>
-          <select name="card_type"
+          <label class="block text-xs mb-1 text-slate-300">Listed status</label>
+          <select name="listed"
                   class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
-            <option value="any" {% if card_type == 'any' %}selected{% endif %}>Any</option>
-            <option value="Creature" {% if card_type == 'Creature' %}selected{% endif %}>Creature</option>
-            <option value="Instant" {% if card_type == 'Instant' %}selected{% endif %}>Instant</option>
-            <option value="Sorcery" {% if card_type == 'Sorcery' %}selected{% endif %}>Sorcery</option>
-            <option value="Artifact" {% if card_type == 'Artifact' %}selected{% endif %}>Artifact</option>
-            <option value="Enchantment" {% if card_type == 'Enchantment' %}selected{% endif %}>Enchantment</option>
-            <option value="Land" {% if card_type == 'Land' %}selected{% endif %}>Land</option>
-            <option value="Planeswalker" {% if card_type == 'Planeswalker' %}selected{% endif %}>Planeswalker</option>
+            <option value="all" {% if listed == 'all' %}selected{% endif %}>All</option>
+            <option value="listed" {% if listed == 'listed' %}selected{% endif %}>Listed only</option>
+            <option value="not_listed" {% if listed == 'not_listed' %}selected{% endif %}>Not listed</option>
           </select>
         </div>
+
+        {# Color – pill selector #}
+        <div data-color-filter-group>
+          <label class="block text-xs mb-1 text-slate-300">Color</label>
+          <input type="hidden"
+                 name="color"
+                 data-color-hidden="true"
+                 id="collection-color-input"
+                 value="{{ color or 'any' }}">
+          <div class="flex flex-wrap gap-1.5">
+            {% set color_value = color or 'any' %}
+            {% set colors = [
+              ('any', 'Any'),
+              ('W', 'W'),
+              ('U', 'U'),
+              ('B', 'B'),
+              ('R', 'R'),
+              ('G', 'G'),
+              ('C', 'C')
+            ] %}
+            {% for code, label in colors %}
+              {% set active = (color_value == code) %}
+              <button type="button"
+                      data-color-value="{{ code }}"
+                      class="px-2 py-0.5 rounded-full border text-[11px]
+                             {% if active %}
+                               bg-emerald-500/30 border-emerald-400 text-emerald-50
+                             {% else %}
+                               bg-slate-900 border-slate-600 text-slate-200 hover:bg-slate-800
+                             {% endif %}">
+                {{ label }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# Card type – pill selector (single-choice) #}
+        <div data-type-filter-group>
+          <label class="block text-xs mb-1 text-slate-300">Card type</label>
+          <input type="hidden"
+                 name="card_type"
+                 data-type-hidden="true"
+                 id="collection-type-input"
+                 value="{{ card_type or 'any' }}">
+          <div class="flex flex-wrap gap-1.5">
+            {% set type_value = card_type or 'any' %}
+            {% set types = [
+              ('any', 'Any'),
+              ('Creature', 'Creature'),
+              ('Instant', 'Instant'),
+              ('Sorcery', 'Sorcery'),
+              ('Artifact', 'Artifact'),
+              ('Enchantment', 'Enchantment'),
+              ('Land', 'Land'),
+              ('Planeswalker', 'Planeswalker')
+            ] %}
+            {% for value, label in types %}
+              {% set active = (type_value == value) %}
+              <button type="button"
+                      data-type-value="{{ value }}"
+                      class="px-2 py-0.5 rounded-full border text-[11px]
+                             {% if active %}
+                               bg-sky-500/30 border-sky-400 text-sky-50
+                             {% else %}
+                               bg-slate-900 border-slate-600 text-slate-200 hover:bg-slate-800
+                             {% endif %}">
+                {{ label }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# Sort by – compact select #}
         <div>
-          <label class="block text-sm mb-1">Sort by</label>
+          <label class="block text-xs mb-1 text-slate-300">Sort by</label>
           <select name="sort"
                   class="w-full rounded bg-slate-900 border border-slate-600 px-3 py-2 text-sm">
-            <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name A → Z</option>
+            <option value="name_asc"  {% if sort == 'name_asc' %}selected{% endif %}>Name A → Z</option>
             <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Name Z → A</option>
             <option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Price high → low</option>
-            <option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Price low → high</option>
-            <option value="set_asc" {% if sort == 'set_asc' %}selected{% endif %}>Set, then name</option>
+            <option value="price_asc"  {% if sort == 'price_asc' %}selected{% endif %}>Price low → high</option>
+            <option value="set_asc"    {% if sort == 'set_asc' %}selected{% endif %}>Set, then name</option>
           </select>
         </div>
+
       </div>
 
-      <button type="submit"
-              class="md:col-span-4 px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
-        Apply filters
-      </button>
-    </form>
-  </div>
+      {# Apply + clear #}
+      <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+        <button type="submit"
+                class="w-full sm:w-auto px-4 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold text-sm">
+          Apply filters
+        </button>
+        {% if has_filters %}
+          <a href="/collection"
+             class="w-full sm:w-auto px-4 py-2 rounded border border-slate-600 text-slate-200 text-xs text-center hover:bg-slate-800">
+            Clear filters
+          </a>
+        {% endif %}
+      </div>
+
+    </div>
+  </form>
 </details>
+
+
+{% if cards %}
+  {# Bulk actions - collapsible #}
+  <section class="bg-slate-800 rounded-lg p-3 mb-3">
+    <button type="button"
+            class="flex items-center justify-between w-full text-left text-xs text-slate-100"
+            onclick="toggleDetails('collection-bulk-body')">
+      <span class="flex items-center gap-2">
+        <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-700 text-[10px]">⚖️</span>
+        Bulk listing actions
+      </span>
+      <span class="text-slate-400 text-[11px]">Tap to open</span>
+    </button>
+
+    <div id="collection-bulk-body" class="mt-2 hidden">
+      <form method="post" action="/dashboard/bulk-list" id="collection-bulk-form"
+            class="flex flex-wrap gap-2 items-center text-xs mt-2">
+        <span class="text-slate-300 mr-1">With selected:</span>
+        <button type="submit" name="action" value="list_selected"
+                class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold">
+          List for trade
+        </button>
+        <button type="submit" name="action" value="unlist_selected"
+                class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold">
+          Unlist
+        </button>
+        <button type="submit" name="action" value="list_all"
+                class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-slate-50 font-semibold">
+          List all in my collection
+        </button>
+        <button type="submit" name="action" value="unlist_all"
+                class="px-3 py-1.5 rounded bg-red-700 hover:bg-red-600 text-slate-50 font-semibold">
+          Unlist all
+        </button>
+      </form>
+    </div>
+  </section>
 
 {% if total %}
   <div class="text-xs text-slate-400 mb-2">
@@ -240,29 +393,6 @@
     Page {{ page }} of {{ max_page }}.
   </div>
 {% endif %}
-
-{% if cards %}
-  {# Bulk actions #}
-  <form method="post" action="/dashboard/bulk-list" id="collection-bulk-form"
-        class="mb-2 flex flex-wrap gap-2 items-center text-xs">
-    <span class="text-slate-300 mr-1">Bulk actions:</span>
-    <button type="submit" name="action" value="list_selected"
-            class="px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold">
-      List selected for trade
-    </button>
-    <button type="submit" name="action" value="unlist_selected"
-            class="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold">
-      Unlist selected
-    </button>
-    <button type="submit" name="action" value="list_all"
-            class="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-slate-50 font-semibold">
-      List all in my collection
-    </button>
-    <button type="submit" name="action" value="unlist_all"
-            class="px-3 py-1.5 rounded bg-red-700 hover:bg-red-600 text-slate-50 font-semibold">
-      Unlist all in my collection
-    </button>
-  </form>
 
   <div class="max-h-[480px] overflow-y-auto border border-slate-700 rounded-md">
     <div class="overflow-x-auto">
@@ -275,7 +405,7 @@
             <th class="px-2 py-2 text-left">Qty</th>
             <th class="px-2 py-2 text-left hidden sm:table-cell">Listed?</th>
             <th class="px-2 py-2 text-right">Value</th>
-            <th class="px-2 py-1 text-right">Actions</th>
+            <th class="px-2 py-2 w-8 text-right"></th>
           </tr>
         </thead>
         <tbody>
@@ -304,43 +434,6 @@
                 {% else %}
                   <div class="font-semibold text-slate-100 text-[11px]">
                     {{ c.card_name }}
-                  </div>
-                {% endif %}
-                {% if mana %}
-                  <div class="flex flex-wrap gap-1">
-                    {# your mana symbol rendering stays the same #}
-                    {% for sym in mana %}
-                      {% set sym_upper = sym.upper() %}
-                      {% if sym_upper == 'W' %}
-                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-yellow-200 text-yellow-900 border border-yellow-400">
-                          W
-                        </span>
-                      {% elif sym_upper == 'U' %}
-                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-blue-500 text-blue-50 border border-blue-300">
-                          U
-                        </span>
-                      {% elif sym_upper == 'B' %}
-                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-black text-slate-100 border border-slate-600">
-                          B
-                        </span>
-                      {% elif sym_upper == 'R' %}
-                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-red-50 border border-red-300">
-                          R
-                        </span>
-                      {% elif sym_upper == 'G' %}
-                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-green-50 border border-green-300">
-                          G
-                        </span>
-                      {% elif sym_upper.isdigit() %}
-                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-slate-600 text-slate-100 border border-slate-400">
-                          {{ sym_upper }}
-                        </span>
-                      {% else %}
-                        <span class="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-slate-700 text-slate-100 border border-slate-500">
-                          {{ sym }}
-                        </span>
-                      {% endif %}
-                    {% endfor %}
                   </div>
                 {% endif %}
                 {% if c.type_line %}
@@ -394,24 +487,41 @@
                 <span class="text-[11px] text-slate-500">n/a</span>
               {% endif %}
             </td>
-            <td class="px-2 py-1 align-top text-right">
-              <form method="post"
-                    action="/collection/delete-card"
-                    class="flex items-center justify-end gap-1"
-                    onsubmit="return confirm('Remove these copies of {{ c.card_name|e }} from your collection?');">
-                <input type="hidden" name="card_id" value="{{ c.id }}">
-                <input type="number"
-                      name="quantity"
-                      min="1"
-                      max="{{ c.quantity }}"
-                      value="1"
-                      class="w-12 rounded bg-slate-900 border border-slate-600 px-1 py-0.5 text-[10px] text-right">
-                <button type="submit"
-                        class="px-2 py-1 rounded bg-rose-600 hover:bg-rose-500 text-slate-50 text-[10px]">
-                  Remove
+            <td class="px-2 py-1 text-right align-top">
+              <div class="relative inline-block text-left">
+                <button type="button"
+                        class="inline-flex items-center justify-center rounded-full w-6 h-6 text-slate-300 hover:bg-slate-700"
+                        onclick="toggleRowMenu('collection-menu-{{ c.id }}', event)">
+                  ⋮
                 </button>
-              </form>
+                <div id="collection-menu-{{ c.id }}"
+                     class="hidden absolute right-0 mt-1 w-48 bg-slate-900 border border-slate-700 rounded-md shadow-lg z-20 px-3 py-2">
+                  <form method="post"
+                        action="/collection/delete-card"
+                        onsubmit="return confirm('Remove these copies of {{ c.card_name|e }} from your collection?');"
+                        class="space-y-1 text-[11px] text-slate-100">
+                    <input type="hidden" name="card_id" value="{{ c.id }}">
+                    <div class="text-slate-300 mb-1">
+                      Remove from collection
+                    </div>
+                    <label class="block text-[10px] text-slate-400 mb-1">
+                      Number of copies to remove:
+                    </label>
+                    <input type="number"
+                           name="quantity"
+                           min="1"
+                           max="{{ c.quantity }}"
+                           value="1"
+                           class="w-full rounded bg-slate-800 border border-slate-600 px-2 py-1 text-[11px] text-right">
+                    <button type="submit"
+                            class="mt-1 w-full px-2 py-1 rounded bg-rose-600 hover:bg-rose-500 text-slate-50 text-[11px] font-semibold">
+                      Remove
+                    </button>
+                  </form>
+                </div>
+              </div>
             </td>
+
           </tr>
         {% endfor %}
 

@@ -7,101 +7,98 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-  .nav-link {
-    padding: 0.25rem 0.5rem;
-    white-space: nowrap;
-  }
+    .nav-link {
+      padding: 0.25rem 0.5rem;
+      white-space: nowrap;
+    }
+
+    /* ---------- Mana filter buttons ---------- */
+    .mana-btn {
+      width: 2.1rem;
+      height: 2.1rem;
+      border-radius: 9999px;
+      border-width: 2px;
+      border-style: solid;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.75); /* subtle dark outline */
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease,
+        opacity 0.12s ease;
+      cursor: pointer;
+    }
+
+    .mana-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    /* White */
+    .mana-W {
+      background: radial-gradient(circle at 30% 30%, #fffdf4 55%, #e1d39c 60%);
+      border-color: #d0c389;
+      color: #4f3e16;
+    }
+
+    /* Blue */
+    .mana-U {
+      background: radial-gradient(circle at 30% 30%, #f3f8ff 55%, #8fb2dd 60%);
+      border-color: #5879b2;
+      color: #102a5b;
+    }
+
+    /* Black */
+    .mana-B {
+      background: radial-gradient(circle at 30% 30%, #4b4b4b 45%, #101010 70%);
+      border-color: #27272a;
+      color: #f4f4f5;
+    }
+
+    /* Red */
+    .mana-R {
+      background: radial-gradient(circle at 30% 30%, #ffe8df 55%, #f08b68 60%);
+      border-color: #b43b26;
+      color: #7c1f12;
+    }
+
+    /* Green */
+    .mana-G {
+      background: radial-gradient(circle at 30% 30%, #e3f5e5 55%, #7bc18a 60%);
+      border-color: #2f6b3d;
+      color: #14532d;
+    }
+
+    /* Colorless */
+    .mana-C {
+      background: radial-gradient(circle at 30% 30%, #f9fafb 55%, #cbd5e1 60%);
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+
+    /* “Any color” icon (star) */
+    .mana-any {
+      background: radial-gradient(circle at 30% 30%, #f9fafb 55%, #e5e7eb 60%);
+      border-color: #9ca3af;
+      color: #0f172a;
+    }
+
+    /* dim when not selected */
+    .mana-muted {
+      filter: grayscale(0.6) brightness(0.9);
+      opacity: 0.7;
+    }
+
+    /* highlight selected */
+    .mana-selected {
+      box-shadow: 0 0 0 2px #22c55e, 0 0 12px rgba(34, 197, 94, 0.45);
+      transform: translateY(-1px);
+      opacity: 1;
+      filter: none;
+    }
   </style>
+
 </head>
-<script>
-  async function fetchCardSuggestions(query) {
-    if (!query || query.length < 2) return [];
-    try {
-      const resp = await fetch(`/api/card-suggestions?q=${encodeURIComponent(query)}`);
-      if (!resp.ok) return [];
-      const data = await resp.json();
-      return data.suggestions || [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function attachCardAutocomplete(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-
-    // Find or create a dropdown container right after the input
-    let dropdown = document.getElementById(inputId + "-suggestions");
-    if (!dropdown) {
-      dropdown = document.createElement("div");
-      dropdown.id = inputId + "-suggestions";
-      dropdown.className = "absolute z-30 mt-1 w-full bg-slate-800 border border-slate-600 rounded-md shadow-lg text-sm hidden";
-      input.parentNode.style.position = "relative";
-      input.parentNode.appendChild(dropdown);
-    }
-
-    let lastQuery = "";
-    let hideTimeout = null;
-
-    input.addEventListener("input", async () => {
-      const q = input.value.trim();
-      lastQuery = q;
-      if (q.length < 2) {
-        dropdown.classList.add("hidden");
-        return;
-      }
-
-      const suggestions = await fetchCardSuggestions(q);
-      if (q !== lastQuery) return; // ignore stale responses
-
-      if (!suggestions.length) {
-        dropdown.classList.add("hidden");
-        return;
-      }
-
-      dropdown.innerHTML = "";
-      suggestions.forEach(name => {
-        const item = document.createElement("div");
-        item.textContent = name;
-        item.className = "px-3 py-1.5 cursor-pointer hover:bg-slate-700";
-        item.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          input.value = name;
-          dropdown.classList.add("hidden");
-        });
-        dropdown.appendChild(item);
-      });
-      dropdown.classList.remove("hidden");
-    });
-
-    input.addEventListener("blur", () => {
-      hideTimeout = setTimeout(() => {
-        dropdown.classList.add("hidden");
-      }, 150);
-    });
-
-    input.addEventListener("focus", () => {
-      if (hideTimeout) {
-        clearTimeout(hideTimeout);
-        hideTimeout = null;
-      }
-      if (dropdown.children.length > 0) {
-        dropdown.classList.remove("hidden");
-      }
-    });
-  }
-  function toggleDetails(elId) {
-    const el = document.getElementById(elId);
-    if (!el) return;
-    el.classList.toggle("hidden");
-  }
-  // Initialize on DOM ready for known inputs (if present on page)
-  document.addEventListener("DOMContentLoaded", () => {
-    attachCardAutocomplete("add-card-name");
-    attachCardAutocomplete("wishlist-card-name");
-    attachCardAutocomplete("search-card-name");
-  });
-</script>
 <body class="bg-slate-900 text-slate-100 min-h-screen">
 <header class="bg-slate-950 border-b border-slate-800">
   <div class="max-w-5xl mx-auto px-4 py-3">
@@ -380,12 +377,60 @@ function postClaim(cardId) {
     });
   }
 
+  // ---- New: filter pills for Collection page ----
+  function initFilterPills() {
+    // Color groups
+    document.querySelectorAll('[data-color-filter-group]').forEach(group => {
+      const hidden = group.querySelector('input[data-color-hidden]');
+      if (!hidden) return;
+      const buttons = group.querySelectorAll('button[data-color-value]');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.getAttribute('data-color-value');
+          hidden.value = val;
+
+          buttons.forEach(b => {
+            b.classList.remove('bg-emerald-500/30', 'border-emerald-400', 'text-emerald-50');
+            b.classList.add('bg-slate-900', 'border-slate-600', 'text-slate-200');
+          });
+
+          btn.classList.remove('bg-slate-900', 'border-slate-600', 'text-slate-200');
+          btn.classList.add('bg-emerald-500/30', 'border-emerald-400', 'text-emerald-50');
+        });
+      });
+    });
+
+    // Type groups
+    document.querySelectorAll('[data-type-filter-group]').forEach(group => {
+      const hidden = group.querySelector('input[data-type-hidden]');
+      if (!hidden) return;
+      const buttons = group.querySelectorAll('button[data-type-value]');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.getAttribute('data-type-value');
+          hidden.value = val;
+
+          buttons.forEach(b => {
+            b.classList.remove('bg-sky-500/30', 'border-sky-400', 'text-sky-50');
+            b.classList.add('bg-slate-900', 'border-slate-600', 'text-slate-200');
+          });
+
+          btn.classList.remove('bg-slate-900', 'border-slate-600', 'text-slate-200');
+          btn.classList.add('bg-sky-500/30', 'border-sky-400', 'text-sky-50');
+        });
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     const inputs = document.querySelectorAll('[data-card-autocomplete="true"]');
     inputs.forEach(attachCardAutocomplete);
+
+    // activate color & type pills on pages that have them
+    initFilterPills();
   });
 
-function showImportLoading(buttonId, statusId, loadingText) {
+  function showImportLoading(buttonId, statusId, loadingText) {
     const btn = document.getElementById(buttonId);
     const status = document.getElementById(statusId);
     if (btn) {
@@ -399,10 +444,31 @@ function showImportLoading(buttonId, statusId, loadingText) {
       status.classList.remove('hidden');
     }
   }
-
 </script>
-</body>
-</html>
 
+
+<script>
+  function toggleRowMenu(id, event) {
+    event.stopPropagation();
+    const menu = document.getElementById(id);
+    if (!menu) return;
+
+    // close all other menus first
+    document.querySelectorAll('[id^="collection-menu-"]').forEach(el => {
+      if (el.id !== id) {
+        el.classList.add('hidden');
+      }
+    });
+
+    menu.classList.toggle('hidden');
+  }
+
+  // close menus when clicking anywhere else
+  document.addEventListener('click', function () {
+    document.querySelectorAll('[id^="collection-menu-"]').forEach(el => {
+      el.classList.add('hidden');
+    });
+  });
+</script>
 </body>
 </html>

@@ -18,22 +18,27 @@ from io import StringIO
 import requests
 from functools import lru_cache
 from sqlalchemy.exc import NoResultFound
+from sqlalchemy import create_engine
 import smtplib
 from email.mime.text import MIMEText
+from dotenv import load_dotenv
 
-
-
-
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "mtg_friends.db"
-DATABASE_URL = f"sqlite:///{DB_PATH}"
-engine = create_engine(DATABASE_URL, echo=False)
+USE_LOCAL_SQLITE = os.getenv("USE_LOCAL_SQLITE", "0") == "1"
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if USE_LOCAL_SQLITE or not DATABASE_URL:
+    DB_PATH = BASE_DIR / "mtg_friends.db"
+    DATABASE_URL = f"sqlite:///{DB_PATH}"
+
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 app = FastAPI()
-app.add_middleware(SessionMiddleware, secret_key="CHANGE_THIS_SECRET_KEY")
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "dev-secret"))
 app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
@@ -525,7 +530,7 @@ def forgot_password_submit(
 
         # Build a reset link – adjust base URL to your hosted URL later
         # For local dev:
-        reset_link = f"{base_url}/reset-password?token={raw_token}"
+        reset_link = f"{BASE_URL}/reset-password?token={raw_token}"
 
         # Send email (or log if SMTP is not configured)
         send_reset_email(user.email, reset_link)
@@ -1370,6 +1375,44 @@ def add_collection_card(
         url=f"/collection?{status_param}=" + urllib.parse.quote(clean_name),
         status_code=302,
     )
+
+from fastapi import Form  # you already import this above for other handlers
+
+@app.post("/collection/delete/{card_id}")
+def delete_collection_card(
+    card_id: int,
+    request: Request,
+    remove_quantity: int = Form(1),
+    current_user: User = Depends(login_required),
+    session: Session = Depends(get_session),
+):
+    # Make sure this card belongs to the current user
+    card = session.get(CardListing, card_id)
+    if not card or card.owner_id != current_user.id:
+        # Just go back silently – nothing to delete
+        return RedirectResponse(url="/collection", status_code=302)
+
+    # Normalize quantity
+    try:
+        qty = int(remove_quantity)
+    except (TypeError, ValueError):
+        qty = 1
+    if qty < 1:
+        qty = 1
+
+    # Decrease quantity or remove the row entirely
+    if card.quantity <= qty:
+        session.delete(card)
+    else:
+        card.quantity = card.quantity - qty
+
+    session.commit()
+
+    return RedirectResponse(
+        url="/collection?deleted_card=1",
+        status_code=302,
+    )
+
 
 @app.post("/collection/delete-card")
 def delete_collection_card(

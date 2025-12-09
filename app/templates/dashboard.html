@@ -83,62 +83,102 @@
   </div>
 {% endif %}
 
-<div class="grid md:grid-cols-2 gap-4 mb-4">
-  {# Single-card add #}
-  <form method="post" action="/dashboard/add-wish" class="space-y-2">
-    <div class="text-sm font-semibold">Add a single card</div>
-    <div>
-      <label class="block text-xs mb-1">Card name</label>
-      <div class="relative">
-        <input id="wishlist-card-name"
-              name="card_name"
-              data-card-autocomplete="true"
-              class="w-full rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-sm"
-              required>
-        <div class="absolute z-30 mt-1 w-full bg-slate-900 border border-slate-700 rounded-md shadow-lg hidden text-xs max-h-56 overflow-y-auto"
-            data-card-suggestions-for="wishlist-card-name">
+{# Compact “manage wishlist” tools, similar to collection #}
+<section class="bg-slate-800 rounded-lg p-3 mb-4">
+  <h2 class="text-sm font-semibold mb-2 flex items-center gap-2">
+    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/50 text-xs">💚</span>
+    Manage my wishlist
+  </h2>
+
+  <div class="grid gap-2 sm:grid-cols-2">
+
+    {# Tile: Add a single card #}
+    <div class="bg-slate-900/70 rounded-md border border-slate-700 p-3">
+      <button type="button"
+              class="w-full flex items-center justify-between text-left"
+              onclick="toggleDetails('wishlist-single-body')">
+        <div>
+          <div class="text-xs font-semibold text-slate-100">Add a single card</div>
+          <div class="text-[11px] text-slate-400">
+            Quickly add one card by name.
+          </div>
         </div>
+        <span class="text-slate-400 text-xs">Tap to open</span>
+      </button>
+
+      <div id="wishlist-single-body" class="mt-2 hidden">
+        <form method="post" action="/dashboard/add-wish" class="space-y-2 mt-2">
+          <div>
+            <label class="block text-xs mb-1">Card name</label>
+            <div class="relative">
+              <input id="wishlist-card-name"
+                     name="card_name"
+                     data-card-autocomplete="true"
+                     class="w-full rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-sm"
+                     required>
+              <div class="absolute z-30 mt-1 w-full bg-slate-900 border border-slate-700 rounded-md shadow-lg hidden text-xs max-h-56 overflow-y-auto"
+                   data-card-suggestions-for="wishlist-card-name">
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs mb-1">Set (optional)</label>
+            <input name="set_name"
+                   class="w-full rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-sm"
+                   placeholder="e.g. CMR">
+          </div>
+          <button class="mt-1 px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">
+            Add to wishlist
+          </button>
+        </form>
       </div>
     </div>
-    <div>
-      <label class="block text-xs mb-1">Set (optional)</label>
-      <input name="set_name"
-            class="w-full rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-sm"
-            placeholder="e.g. CMR">
+
+    {# Tile: Import from EDHREC / Moxfield #}
+    <div class="bg-slate-900/70 rounded-md border border-slate-700 p-3">
+      <button type="button"
+              class="w-full flex items-center justify-between text-left"
+              onclick="toggleDetails('wishlist-import-body')">
+        <div>
+          <div class="text-xs font-semibold text-slate-100">Import from EDHREC / Moxfield</div>
+          <div class="text-[11px] text-slate-400">
+            Paste a decklist export · tap to open
+          </div>
+        </div>
+        <span class="text-slate-400 text-xs">Tap to open</span>
+      </button>
+
+      <div id="wishlist-import-body" class="mt-2 hidden">
+        <p class="text-[11px] text-slate-300 mb-2 mt-2">
+          Paste a decklist export here (e.g. from EDHREC or Moxfield).
+          Each line should have a quantity and card name, like
+          <code>1 Sol Ring</code> or <code>1x Sol Ring</code>.
+          Cards you already own will be detected and not added to your wishlist.
+        </p>
+        <form method="post"
+              action="/dashboard/import-wishlist"
+              class="space-y-2"
+              onsubmit="showImportLoading('wishlist-import-button','wishlist-import-status','Importing...')">
+          <textarea name="deck_text"
+                    class="w-full min-h-[120px] rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-xs"
+                    placeholder="1 Sol Ring&#10;1 Swords to Plowshares&#10;..."></textarea>
+          <button id="wishlist-import-button"
+                  class="mt-1 px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">
+            Import to wishlist
+          </button>
+          <p id="wishlist-import-status"
+             class="hidden mt-1 text-[11px] text-slate-300">
+            <span id="wishlist-import-status-text">
+              Importing cards from decklist... this may take a few seconds if there are many cards.
+              Please do not leave this page until import is finished.
+            </span>
+          </p>
+        </form>
+      </div>
     </div>
-    <button class="mt-1 px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">
-      Add to wishlist
-    </button>
-  </form>
 
-
-
-  {# Decklist import #}
-  <form method="post"
-      action="/dashboard/import-wishlist"
-      class="space-y-2"
-      onsubmit="showImportLoading('wishlist-import-button','wishlist-import-status','Importing...')">
-    <div class="text-sm font-semibold">Import from EDHREC / Moxfield</div>
-    <p class="text-[11px] text-slate-300">
-      Paste a decklist export here (e.g. from EDHREC or Moxfield).
-      Each line should have a quantity and card name, like <code>1 Sol Ring</code> or <code>1x Sol Ring</code>.
-      Cards you already own will be detected and not added to your wishlist.
-    </p>
-    <textarea name="deck_text"
-              class="w-full min-h-[120px] rounded bg-slate-900 border border-slate-600 px-2 py-1.5 text-xs"
-              placeholder="1 Sol Ring&#10;1 Swords to Plowshares&#10;..."></textarea>
-    <button id="wishlist-import-button"
-            class="mt-1 px-3 py-1.5 rounded bg-emerald-500 hover:bg-emerald-400 text-slate-900 text-sm font-semibold">
-      Import to wishlist
-    </button>
-    <p id="wishlist-import-status"
-      class="hidden mt-1 text-[11px] text-slate-300">
-      <span id="wishlist-import-status-text">
-        Importing cards from decklist... this may take a few seconds if there are many cards. Please do not leave this page until import if finished.
-      </span>
-    </p>
-  </form>
-</div>
+  </div>
+</section>
 
 <form method="get" action="/dashboard"
       class="mb-3 flex flex-col md:flex-row gap-2 items-start md:items-end text-xs">
