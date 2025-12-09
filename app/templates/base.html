@@ -470,5 +470,14 @@ function postClaim(cardId) {
     });
   });
 </script>
+<script>
+  // Simple helper used by "Tap to open" buttons
+  function toggleDetails(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('hidden');
+  }
+</script>
+
 </body>
 </html>
